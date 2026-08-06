@@ -24,6 +24,19 @@ export default function SnitchCam() {
   const [soundOn, setSoundOn] = useState(true);
   const [notifyOn, setNotifyOn] = useState(false);
   const [fps, setFps] = useState(0);
+  const [confidence, setConfidence] = useState(0.5);
+  const [sensitivity, setSensitivity] = useState(6);
+
+  const confidenceRef = useRef(confidence);
+  const sensitivityRef = useRef(sensitivity);
+  const hitRef = useRef(0);
+  const missRef = useRef(0);
+  useEffect(() => {
+    confidenceRef.current = confidence;
+  }, [confidence]);
+  useEffect(() => {
+    sensitivityRef.current = sensitivity;
+  }, [sensitivity]);
 
   const beep = useCallback(() => {
     if (!soundOn) return;
