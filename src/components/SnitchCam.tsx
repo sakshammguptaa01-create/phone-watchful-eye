@@ -5,7 +5,6 @@ import * as cocoSsd from "@tensorflow-models/coco-ssd";
 type LogEntry = { id: number; time: string; score: number; duration?: number };
 
 const PHONE_CLASSES = ["cell phone", "remote"];
-const CONFIDENCE = 0.5;
 
 export default function SnitchCam() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
