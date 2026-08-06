@@ -284,6 +284,47 @@ export default function SnitchCam() {
             {notifyOn ? "🔔 Notifications On" : "🔕 Enable Notifications"}
           </button>
         </div>
+
+        <div className="grid gap-4 border-t border-border/70 px-4 py-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="flex items-center justify-between font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+              Confidence Threshold
+              <span className="text-foreground">{(confidence * 100).toFixed(0)}%</span>
+            </span>
+            <input
+              type="range"
+              min={20}
+              max={90}
+              step={1}
+              value={Math.round(confidence * 100)}
+              onChange={(e) => setConfidence(Number(e.target.value) / 100)}
+              className="mt-2 w-full accent-[var(--color-destructive)]"
+            />
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              Lower = catches more phones (more false alarms). Higher = only very sure detections.
+            </span>
+          </label>
+
+          <label className="block">
+            <span className="flex items-center justify-between font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+              Detection Sensitivity
+              <span className="text-foreground">{sensitivity}/10</span>
+            </span>
+            <input
+              type="range"
+              min={1}
+              max={10}
+              step={1}
+              value={sensitivity}
+              onChange={(e) => setSensitivity(Number(e.target.value))}
+              className="mt-2 w-full accent-[var(--color-destructive)]"
+            />
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              Needs {11 - sensitivity} consecutive frame{11 - sensitivity === 1 ? "" : "s"} before
+              alerting — lower is calmer, higher reacts instantly.
+            </span>
+          </label>
+        </div>
       </section>
 
       <aside className="flex flex-col gap-4">
