@@ -5,7 +5,6 @@ import * as cocoSsd from "@tensorflow-models/coco-ssd";
 type LogEntry = { id: number; time: string; score: number; duration?: number };
 
 const PHONE_CLASSES = ["cell phone", "remote"];
-const CONFIDENCE = 0.5;
 
 export default function SnitchCam() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -25,6 +24,19 @@ export default function SnitchCam() {
   const [soundOn, setSoundOn] = useState(true);
   const [notifyOn, setNotifyOn] = useState(false);
   const [fps, setFps] = useState(0);
+  const [confidence, setConfidence] = useState(0.5);
+  const [sensitivity, setSensitivity] = useState(6);
+
+  const confidenceRef = useRef(confidence);
+  const sensitivityRef = useRef(sensitivity);
+  const hitRef = useRef(0);
+  const missRef = useRef(0);
+  useEffect(() => {
+    confidenceRef.current = confidence;
+  }, [confidence]);
+  useEffect(() => {
+    sensitivityRef.current = sensitivity;
+  }, [sensitivity]);
 
   const beep = useCallback(() => {
     if (!soundOn) return;
@@ -124,7 +136,7 @@ export default function SnitchCam() {
         const preds = await model.detect(video);
 
         const phones = preds.filter(
-          (p) => PHONE_CLASSES.includes(p.class) && p.score >= CONFIDENCE,
+          (p) => PHONE_CLASSES.includes(p.class) && p.score >= confidenceRef.current,
         );
         const best = phones.sort((a, b) => b.score - a.score)[0];
 
@@ -143,7 +155,17 @@ export default function SnitchCam() {
           }
         }
 
+        const needed = 11 - sensitivityRef.current; // higher sensitivity = fewer frames to trigger
+
         if (best) {
+          hitRef.current++;
+          missRef.current = 0;
+        } else {
+          missRef.current++;
+          hitRef.current = 0;
+        }
+
+        if (best && hitRef.current >= needed) {
           if (violationStartRef.current === null) {
             violationStartRef.current = Date.now();
             notify();
@@ -161,7 +183,7 @@ export default function SnitchCam() {
           setDetected(true);
           setScore(best.score);
           beep();
-        } else if (violationStartRef.current !== null) {
+        } else if (!best && missRef.current >= needed && violationStartRef.current !== null) {
           const dur = (Date.now() - violationStartRef.current) / 1000;
           const id = logIdRef.current;
           violationStartRef.current = null;
@@ -261,6 +283,47 @@ export default function SnitchCam() {
           >
             {notifyOn ? "🔔 Notifications On" : "🔕 Enable Notifications"}
           </button>
+        </div>
+
+        <div className="grid gap-4 border-t border-border/70 px-4 py-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="flex items-center justify-between font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+              Confidence Threshold
+              <span className="text-foreground">{(confidence * 100).toFixed(0)}%</span>
+            </span>
+            <input
+              type="range"
+              min={20}
+              max={90}
+              step={1}
+              value={Math.round(confidence * 100)}
+              onChange={(e) => setConfidence(Number(e.target.value) / 100)}
+              className="mt-2 w-full accent-[var(--color-destructive)]"
+            />
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              Lower = catches more phones (more false alarms). Higher = only very sure detections.
+            </span>
+          </label>
+
+          <label className="block">
+            <span className="flex items-center justify-between font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+              Detection Sensitivity
+              <span className="text-foreground">{sensitivity}/10</span>
+            </span>
+            <input
+              type="range"
+              min={1}
+              max={10}
+              step={1}
+              value={sensitivity}
+              onChange={(e) => setSensitivity(Number(e.target.value))}
+              className="mt-2 w-full accent-[var(--color-destructive)]"
+            />
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              Needs {11 - sensitivity} consecutive frame{11 - sensitivity === 1 ? "" : "s"} before
+              alerting — lower is calmer, higher reacts instantly.
+            </span>
+          </label>
         </div>
       </section>
 
