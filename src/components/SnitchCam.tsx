@@ -155,7 +155,17 @@ export default function SnitchCam() {
           }
         }
 
+        const needed = 11 - sensitivityRef.current; // higher sensitivity = fewer frames to trigger
+
         if (best) {
+          hitRef.current++;
+          missRef.current = 0;
+        } else {
+          missRef.current++;
+          hitRef.current = 0;
+        }
+
+        if (best && hitRef.current >= needed) {
           if (violationStartRef.current === null) {
             violationStartRef.current = Date.now();
             notify();
@@ -173,7 +183,7 @@ export default function SnitchCam() {
           setDetected(true);
           setScore(best.score);
           beep();
-        } else if (violationStartRef.current !== null) {
+        } else if (!best && missRef.current >= needed && violationStartRef.current !== null) {
           const dur = (Date.now() - violationStartRef.current) / 1000;
           const id = logIdRef.current;
           violationStartRef.current = null;
