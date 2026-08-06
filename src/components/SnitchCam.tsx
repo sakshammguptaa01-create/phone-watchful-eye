@@ -136,7 +136,7 @@ export default function SnitchCam() {
         const preds = await model.detect(video);
 
         const phones = preds.filter(
-          (p) => PHONE_CLASSES.includes(p.class) && p.score >= CONFIDENCE,
+          (p) => PHONE_CLASSES.includes(p.class) && p.score >= confidenceRef.current,
         );
         const best = phones.sort((a, b) => b.score - a.score)[0];
 
