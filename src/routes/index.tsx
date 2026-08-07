@@ -63,7 +63,7 @@ function Index() {
           </ClientOnly>
         </Suspense>
 
-        <section className="mt-12 grid gap-4 sm:grid-cols-3">
+        <section className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
               t: "Pretrained Model",
@@ -76,6 +76,10 @@ function Index() {
             {
               t: "Alert Engine",
               d: "Web Audio API generates a two-tone beep and the Notification API raises a desktop alert, throttled to one beep per second.",
+            },
+            {
+              t: "Demo Mode",
+              d: "Static image tests plus a 10-second prerecorded sample video let the examiner try the detector without a webcam or camera permission.",
             },
           ].map((c) => (
             <article key={c.t} className="rounded-xl border border-border bg-card p-5">
