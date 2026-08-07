@@ -52,6 +52,7 @@ The system is deliberately simple to demonstrate:
 - Web Audio beep alert
 - Optional desktop notification alert
 - Violation log with timestamp, confidence and duration
+- **Demo mode with static images and a prerecorded sample video** — works without a webcam
 - Responsive, dark-themed surveillance UI
 - Privacy-friendly: no video leaves the device
 
