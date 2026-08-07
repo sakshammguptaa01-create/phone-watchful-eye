@@ -77,14 +77,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Snitch Cam — AI Phone Usage Detection" },
+      {
+        name: "description",
+        content:
+          "Snitch Cam is a Class 12 CBSE capstone project that detects mobile phone usage on a live webcam feed using a pretrained deep-learning object detector.",
+      },
+      { name: "author", content: "Class 12 CBSE Computer Science Project" },
+      { property: "og:title", content: "Snitch Cam — AI Phone Usage Detection" },
+      {
+        property: "og:description",
+        content:
+          "Real-time phone-usage detection with a pretrained object detection model, live alerts and a violation log.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -99,7 +106,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
-
   }),
   shellComponent: RootShell,
   component: RootComponent,

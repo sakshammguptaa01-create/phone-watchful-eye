@@ -100,13 +100,57 @@ function Index() {
             </li>
             <li>
               <span className="text-foreground">3. Filter —</span> only detections of class
-              &quot;cell phone&quot; above 50% confidence count as a violation.
+              &quot;cell phone&quot; above the chosen confidence threshold count as a violation.
             </li>
             <li>
               <span className="text-foreground">4. Alert &amp; Log —</span> a beep plus notification
               fires, the box is drawn on a canvas overlay, and the event is timestamped in the log.
             </li>
           </ol>
+        </section>
+
+        <section className="mt-8 rounded-xl border border-border bg-card p-6">
+          <h2 className="font-mono text-xs tracking-[0.3em] text-muted-foreground uppercase">
+            Project Report
+          </h2>
+          <div className="mt-4 grid gap-5 text-sm text-muted-foreground sm:grid-cols-2">
+            <div>
+              <h3 className="font-semibold text-foreground">Aim</h3>
+              <p className="mt-1">
+                Build a browser-based AI invigilation system that detects mobile phone usage in
+                front of a webcam and raises an instant alert.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">Tech Stack</h3>
+              <p className="mt-1">
+                TanStack Start, React 19, TypeScript, Tailwind CSS v4, TensorFlow.js, COCO-SSD
+                MobileNet, Web Audio API, Notification API.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">Algorithm</h3>
+              <p className="mt-1">
+                Stream webcam frames, run COCO-SSD detection, keep only &quot;cell phone&quot;
+                detections above the confidence threshold, require consecutive frames before
+                alerting, then beep, notify and log.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">Limitations</h3>
+              <p className="mt-1">
+                Accuracy depends on lighting, angle, distance and how clearly the phone is visible.
+                Far-away phones or heavily obscured phones may be missed.
+              </p>
+            </div>
+            <div className="sm:col-span-2">
+              <h3 className="font-semibold text-foreground">Future Scope</h3>
+              <p className="mt-1">
+                Train a custom exam-room model, add attention/face detection, store violation logs
+                on a backend, and support multiple camera feeds for classroom-wide monitoring.
+              </p>
+            </div>
+          </div>
         </section>
 
         <footer className="mt-10 border-t border-border pt-6 font-mono text-[11px] tracking-widest text-muted-foreground uppercase">

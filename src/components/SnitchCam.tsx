@@ -2,19 +2,23 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
 import * as cocoSsd from "@tensorflow-models/coco-ssd";
 
+// Each violation saved to the log gets an id, timestamp, confidence score and optional duration.
 type LogEntry = { id: number; time: string; score: number; duration?: number };
 
-const PHONE_CLASSES = ["cell phone", "remote"];
+// COCO-SSD can detect 90 everyday object classes. We only care about mobile phones.
+const PHONE_CLASSES = ["cell phone"];
 
 export default function SnitchCam() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
   const modelRef = useRef<cocoSsd.ObjectDetection | null>(null);
   const rafRef = useRef<number | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
   const lastBeepRef = useRef(0);
   const violationStartRef = useRef<number | null>(null);
   const logIdRef = useRef(0);
+  const demoImageRef = useRef<string | null>(null);
 
   const [status, setStatus] = useState<"idle" | "loading" | "running" | "error">("idle");
   const [message, setMessage] = useState("Model not loaded");
@@ -27,8 +31,10 @@ export default function SnitchCam() {
   const [confidence, setConfidence] = useState(0.5);
   const [sensitivity, setSensitivity] = useState(6);
 
+  // Refs mirror slider values so the detection loop reads the latest setting without re-rendering.
   const confidenceRef = useRef(confidence);
   const sensitivityRef = useRef(sensitivity);
+  // hitRef / missRef count consecutive frames with/without a phone to reduce flickering alerts.
   const hitRef = useRef(0);
   const missRef = useRef(0);
   useEffect(() => {
@@ -89,31 +95,128 @@ export default function SnitchCam() {
     rafRef.current = null;
     const stream = videoRef.current?.srcObject as MediaStream | null;
     stream?.getTracks().forEach((t) => t.stop());
-    if (videoRef.current) videoRef.current.srcObject = null;
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+      videoRef.current.src = "";
+      videoRef.current.pause();
+      videoRef.current.style.opacity = "1";
+    }
+    demoImageRef.current = null;
     violationStartRef.current = null;
     setDetected(false);
+    setScore(0);
+    setFps(0);
     setStatus("idle");
     setMessage("Surveillance stopped");
   }, []);
+
+  const loadModel = async () => {
+    if (modelRef.current) return;
+    setMessage("Loading pretrained detection model…");
+    try {
+      await tf.ready();
+      modelRef.current = await cocoSsd.load({ base: "lite_mobilenet_v2" });
+    } catch (e) {
+      // If WebGL is unavailable (some headless/older machines), fall back to CPU.
+      if (String(e).includes("WebGL")) {
+        setMessage("WebGL unavailable, switching to CPU backend (slower)…");
+        await tf.setBackend("cpu");
+        await tf.ready();
+        modelRef.current = await cocoSsd.load({ base: "lite_mobilenet_v2" });
+      } else {
+        throw e;
+      }
+    }
+  };
+
+  // Draw red bounding boxes and labels for every phone detection on the canvas overlay.
+  const drawPredictions = (
+    ctx: CanvasRenderingContext2D,
+    phones: cocoSsd.DetectedObject[],
+    width: number,
+    height: number,
+  ) => {
+    ctx.clearRect(0, 0, width, height);
+    ctx.lineWidth = 3;
+    ctx.font = "600 16px ui-sans-serif, system-ui";
+    for (const p of phones) {
+      const [x, y, w, h] = p.bbox;
+      ctx.strokeStyle = "rgb(255,80,80)";
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = "rgba(255,80,80,0.85)";
+      ctx.fillRect(x, y - 22, ctx.measureText(p.class).width + 60, 22);
+      ctx.fillStyle = "#fff";
+      ctx.fillText(`${p.class} ${(p.score * 100).toFixed(0)}%`, x + 6, y - 6);
+    }
+  };
+
+  const registerViolation = (best: cocoSsd.DetectedObject) => {
+    if (violationStartRef.current === null) {
+      violationStartRef.current = Date.now();
+      notify();
+      setLogs((l) =>
+        [
+          {
+            id: ++logIdRef.current,
+            time: new Date().toLocaleTimeString(),
+            score: best.score,
+          },
+          ...l,
+        ].slice(0, 40),
+      );
+    }
+    setDetected(true);
+    setScore(best.score);
+    beep();
+  };
+
+  const clearViolation = () => {
+    if (violationStartRef.current !== null) {
+      const dur = (Date.now() - violationStartRef.current) / 1000;
+      const id = logIdRef.current;
+      violationStartRef.current = null;
+      setLogs((l) => l.map((e) => (e.id === id ? { ...e, duration: dur } : e)));
+    }
+    setDetected(false);
+    setScore(0);
+  };
+
+  // Decide whether a stable violation has started or ended based on consecutive frames.
+  const evaluateFrame = (best: cocoSsd.DetectedObject | undefined) => {
+    // Higher sensitivity slider => fewer consecutive frames needed to trigger.
+    const needed = 11 - sensitivityRef.current;
+
+    if (best) {
+      hitRef.current++;
+      missRef.current = 0;
+    } else {
+      missRef.current++;
+      hitRef.current = 0;
+    }
+
+    if (best && hitRef.current >= needed) {
+      registerViolation(best);
+    } else if (!best && missRef.current >= needed) {
+      clearViolation();
+    }
+  };
 
   const start = useCallback(async () => {
     try {
       setStatus("loading");
       setMessage("Requesting camera…");
+      demoImageRef.current = null;
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: 640, height: 480 },
         audio: false,
       });
       if (videoRef.current) {
+        videoRef.current.style.opacity = "1";
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
 
-      if (!modelRef.current) {
-        setMessage("Loading pretrained detection model…");
-        await tf.ready();
-        modelRef.current = await cocoSsd.load({ base: "lite_mobilenet_v2" });
-      }
+      await loadModel();
 
       setStatus("running");
       setMessage("Monitoring live feed");
@@ -140,57 +243,8 @@ export default function SnitchCam() {
         );
         const best = phones.sort((a, b) => b.score - a.score)[0];
 
-        if (ctx) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.lineWidth = 3;
-          ctx.font = "600 16px ui-sans-serif, system-ui";
-          for (const p of phones) {
-            const [x, y, w, h] = p.bbox;
-            ctx.strokeStyle = "rgb(255,80,80)";
-            ctx.strokeRect(x, y, w, h);
-            ctx.fillStyle = "rgba(255,80,80,0.85)";
-            ctx.fillRect(x, y - 22, ctx.measureText(p.class).width + 60, 22);
-            ctx.fillStyle = "#fff";
-            ctx.fillText(`${p.class} ${(p.score * 100).toFixed(0)}%`, x + 6, y - 6);
-          }
-        }
-
-        const needed = 11 - sensitivityRef.current; // higher sensitivity = fewer frames to trigger
-
-        if (best) {
-          hitRef.current++;
-          missRef.current = 0;
-        } else {
-          missRef.current++;
-          hitRef.current = 0;
-        }
-
-        if (best && hitRef.current >= needed) {
-          if (violationStartRef.current === null) {
-            violationStartRef.current = Date.now();
-            notify();
-            setLogs((l) =>
-              [
-                {
-                  id: ++logIdRef.current,
-                  time: new Date().toLocaleTimeString(),
-                  score: best.score,
-                },
-                ...l,
-              ].slice(0, 40),
-            );
-          }
-          setDetected(true);
-          setScore(best.score);
-          beep();
-        } else if (!best && missRef.current >= needed && violationStartRef.current !== null) {
-          const dur = (Date.now() - violationStartRef.current) / 1000;
-          const id = logIdRef.current;
-          violationStartRef.current = null;
-          setLogs((l) => l.map((e) => (e.id === id ? { ...e, duration: dur } : e)));
-          setDetected(false);
-          setScore(0);
-        }
+        if (ctx) drawPredictions(ctx, phones, canvas.width, canvas.height);
+        evaluateFrame(best);
 
         frames++;
         const now = performance.now();
@@ -207,6 +261,136 @@ export default function SnitchCam() {
     } catch (e) {
       setStatus("error");
       setMessage(e instanceof Error ? e.message : "Could not start camera");
+    }
+  }, [beep, notify]);
+
+  const runDemo = useCallback(
+    async (src: string, label: string) => {
+      try {
+        setStatus("loading");
+        setMessage(`Loading demo image: ${label}…`);
+        await loadModel();
+
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = src;
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error("Failed to load demo image"));
+        });
+        imageRef.current = img;
+        demoImageRef.current = src;
+
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        if (!video || !canvas) return;
+
+        // Stop any live camera stream so the demo image is visible
+        const stream = video.srcObject as MediaStream | null;
+        stream?.getTracks().forEach((t) => t.stop());
+        video.srcObject = null;
+        video.style.opacity = "0";
+
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        }
+
+        const preds = await modelRef.current!.detect(img);
+        const phones = preds.filter(
+          (p) => PHONE_CLASSES.includes(p.class) && p.score >= confidenceRef.current,
+        );
+        const best = phones.sort((a, b) => b.score - a.score)[0];
+
+        if (ctx) drawPredictions(ctx, phones, canvas.width, canvas.height);
+
+        hitRef.current = 0;
+        missRef.current = 0;
+        violationStartRef.current = null;
+        evaluateFrame(best);
+
+        setStatus("idle");
+        setMessage(
+          best
+            ? `Demo: phone detected at ${(best.score * 100).toFixed(0)}% confidence`
+            : "Demo: no phone detected",
+        );
+      } catch (e) {
+        setStatus("error");
+        setMessage(e instanceof Error ? e.message : "Demo failed");
+      }
+    },
+    [beep, notify],
+  );
+
+  // Play a prerecorded sample video through the same detector loop.
+  const runDemoVideo = useCallback(async () => {
+    try {
+      setStatus("loading");
+      setMessage("Loading sample video…");
+      await loadModel();
+
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (!video || !canvas) return;
+
+      // Stop any active camera stream before playing the file.
+      const stream = video.srcObject as MediaStream | null;
+      stream?.getTracks().forEach((t) => t.stop());
+      video.srcObject = null;
+      video.src = "/demo/sample-video.webm";
+      video.loop = true;
+      video.muted = true;
+      video.style.opacity = "1";
+      demoImageRef.current = "/demo/sample-video.mp4";
+
+      await video.play();
+      setStatus("running");
+      setMessage("Playing sample video");
+
+      let last = performance.now();
+      let frames = 0;
+
+      const loop = async () => {
+        const v = videoRef.current;
+        const c = canvasRef.current;
+        const model = modelRef.current;
+        if (!v || !c || !model || v.paused || v.ended) {
+          rafRef.current = requestAnimationFrame(() => void loop());
+          return;
+        }
+
+        c.width = v.videoWidth;
+        c.height = v.videoHeight;
+        const ctx = c.getContext("2d");
+        const preds = await model.detect(v);
+
+        const phones = preds.filter(
+          (p) => PHONE_CLASSES.includes(p.class) && p.score >= confidenceRef.current,
+        );
+        const best = phones.sort((a, b) => b.score - a.score)[0];
+
+        if (ctx) drawPredictions(ctx, phones, c.width, c.height);
+        evaluateFrame(best);
+
+        frames++;
+        const now = performance.now();
+        if (now - last > 1000) {
+          setFps(Math.round((frames * 1000) / (now - last)));
+          frames = 0;
+          last = now;
+        }
+
+        rafRef.current = requestAnimationFrame(() => void loop());
+      };
+
+      rafRef.current = requestAnimationFrame(() => void loop());
+    } catch (e) {
+      setStatus("error");
+      setMessage(e instanceof Error ? e.message : "Sample video failed");
     }
   }, [beep, notify]);
 
@@ -245,7 +429,7 @@ export default function SnitchCam() {
           <canvas ref={canvasRef} className="absolute inset-0 size-full object-cover" />
           <div className="pointer-events-none absolute inset-0 bg-scanlines opacity-30" />
 
-          {status !== "running" && (
+          {status !== "running" && !demoImageRef.current && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 px-6 text-center">
               <p className="font-mono text-sm tracking-widest text-muted-foreground uppercase">
                 {status === "loading" ? "Initialising" : status === "error" ? "Error" : "Standby"}
@@ -325,6 +509,39 @@ export default function SnitchCam() {
             </span>
           </label>
         </div>
+
+        <div className="border-t border-border/70 px-4 py-4">
+          <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+            Demo Mode (no camera needed)
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              onClick={() => void runDemo("/demo/with-phone.jpg", "Phone in hand")}
+              disabled={status === "loading"}
+              className="btn-ghost"
+            >
+              Test: Phone in Frame
+            </button>
+            <button
+              onClick={() => void runDemo("/demo/no-phone.jpg", "No phone")}
+              disabled={status === "loading"}
+              className="btn-ghost"
+            >
+              Test: No Phone
+            </button>
+            <button
+              onClick={() => void runDemoVideo()}
+              disabled={status === "loading"}
+              className="btn-ghost"
+            >
+              ▶ Run Sample Video
+            </button>
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Use these if the exam computer has no webcam or camera permission is blocked. The sample
+            video loops between a phone-in-frame scene and a clear scene.
+          </p>
+        </div>
       </section>
 
       <aside className="flex flex-col gap-4">
@@ -353,6 +570,19 @@ export default function SnitchCam() {
             </p>
             <p className="mt-1 text-3xl font-black text-destructive">{violations}</p>
           </div>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+            Detection Tips
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-muted-foreground">
+            <li>Keep the phone clearly visible and facing the camera.</li>
+            <li>Use bright, even lighting — shadows reduce accuracy.</li>
+            <li>Hold the phone within arm's length for a larger, clearer frame.</li>
+            <li>Plain back covers work better than heavily patterned ones.</li>
+            <li>Avoid covering the phone with hands, books or clothing.</li>
+          </ul>
         </div>
 
         <div className="flex min-h-64 flex-1 flex-col rounded-xl border border-border bg-card">
