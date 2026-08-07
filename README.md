@@ -65,7 +65,10 @@ bun install
 # Start the development server
 bun run dev
 
-# Open the URL shown in the terminal and allow camera access when prompted.
+# Open the URL shown in the terminal.
+# - Use "Start Surveillance" to run on the live webcam.
+# - Use "Demo Mode" buttons to test with static images or a prerecorded sample video
+#   if no webcam is available or camera permission is blocked.
 ```
 
 To build for production:
