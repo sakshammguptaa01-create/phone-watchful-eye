@@ -56,7 +56,10 @@ export default function SnitchCam() {
     try {
       const ctx =
         audioRef.current ??
-        new (window.AudioContext || (window as never as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+        new (
+          window.AudioContext ||
+          (window as never as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        )();
       audioRef.current = ctx;
       if (ctx.state === "suspended") void ctx.resume();
       const osc = ctx.createOscillator();
@@ -464,7 +467,11 @@ export default function SnitchCam() {
               Stop Monitoring
             </button>
           ) : (
-            <button onClick={() => void start()} disabled={status === "loading"} className="btn-primary">
+            <button
+              onClick={() => void start()}
+              disabled={status === "loading"}
+              className="btn-primary"
+            >
               {status === "loading" ? "Loading…" : "Start Monitoring"}
             </button>
           )}
@@ -488,7 +495,6 @@ export default function SnitchCam() {
             {strict ? "🎯 Strict Filter On" : "🎯 Strict Filter Off"}
           </button>
         </div>
-
 
         <div className="grid gap-4 border-t border-border/70 px-4 py-4 sm:grid-cols-2">
           <label className="block">
@@ -581,9 +587,7 @@ export default function SnitchCam() {
             <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
               Confidence
             </p>
-            <p className="mt-1 text-lg font-bold text-foreground">
-              {(score * 100).toFixed(0)}%
-            </p>
+            <p className="mt-1 text-lg font-bold text-foreground">{(score * 100).toFixed(0)}%</p>
           </div>
           <div className="col-span-2 rounded-xl border border-border bg-card p-4">
             <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
@@ -609,7 +613,6 @@ export default function SnitchCam() {
               threshold to 60–70%.
             </li>
           </ul>
-
         </div>
 
         <div className="flex min-h-64 flex-1 flex-col rounded-xl border border-border bg-card">

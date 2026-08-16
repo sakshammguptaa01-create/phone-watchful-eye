@@ -135,10 +135,9 @@ function Index() {
             <div>
               <h3 className="font-semibold text-foreground">Algorithm</h3>
               <p className="mt-1">
-                Stream webcam frames (or play the prerecorded demo video), run COCO-SSD
-                detection, keep only &quot;cell phone&quot; detections above the confidence
-                threshold, require consecutive frames before alerting, then beep, notify and
-                log.
+                Stream webcam frames (or play the prerecorded demo video), run COCO-SSD detection,
+                keep only &quot;cell phone&quot; detections above the confidence threshold, require
+                consecutive frames before alerting, then beep, notify and log.
               </p>
             </div>
             <div>
