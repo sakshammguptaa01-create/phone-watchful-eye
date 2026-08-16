@@ -307,7 +307,6 @@ export default function SnitchCam() {
         }
 
         const preds = await modelRef.current!.detect(img);
-        console.log("RAWPRED", JSON.stringify(preds));
         const phones = filterPhones(preds, {
           threshold: confidenceRef.current,
           strict: strictRef.current,
