@@ -4,7 +4,9 @@
   "description": "Class 12 CBSE Computer Science capstone project — AI-powered phone usage detection in the browser using TensorFlow.js and COCO-SSD.",
   "author": "Saksham Gupta",
   "license": "MIT",
-  "scripts": {
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
     "dev": "vite dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
