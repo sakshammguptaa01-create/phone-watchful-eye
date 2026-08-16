@@ -30,3 +30,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Lovable editor metadata (keep GitHub repo clean)
+.lovable/
+AGENTS.md
