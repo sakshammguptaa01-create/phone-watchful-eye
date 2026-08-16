@@ -13,6 +13,7 @@ To build a browser-based AI invigilation system that detects when a person uses 
 Snitch Cam uses a pretrained deep-learning object-detection model (COCO-SSD with a MobileNet backbone) running entirely in the browser through TensorFlow.js. It watches the live camera feed, looks for objects classified as `cell phone`, draws a bounding box around any detection, and triggers a beep sound plus an optional desktop notification. All detections are timestamped in a violation log.
 
 The system is deliberately simple to demonstrate:
+
 - Real-time computer vision in the browser
 - Privacy-preserving, on-device inference
 - Immediate feedback loops (visual + audio + notification)
@@ -20,15 +21,15 @@ The system is deliberately simple to demonstrate:
 
 ## 3. Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Framework | TanStack Start (React 19 + Vite) |
-| Language | TypeScript |
-| Styling | Tailwind CSS v4 |
-| AI Model | COCO-SSD (MobileNet) via `@tensorflow-models/coco-ssd` |
-| Runtime | TensorFlow.js (`@tensorflow/tfjs`) with WebGL acceleration |
-| Audio | Web Audio API |
-| Notifications | Browser Notification API |
+| Layer         | Technology                                                 |
+| ------------- | ---------------------------------------------------------- |
+| Framework     | TanStack Start (React 19 + Vite)                           |
+| Language      | TypeScript                                                 |
+| Styling       | Tailwind CSS v4                                            |
+| AI Model      | COCO-SSD (MobileNet) via `@tensorflow-models/coco-ssd`     |
+| Runtime       | TensorFlow.js (`@tensorflow/tfjs`) with WebGL acceleration |
+| Audio         | Web Audio API                                              |
+| Notifications | Browser Notification API                                   |
 
 ## 4. Algorithm
 
@@ -97,4 +98,4 @@ Snitch Cam demonstrates how a pretrained neural network can be deployed directly
 
 ---
 
-*Submitted for AISSCE Class 12 Computer Science Practical Examination.*
+_Submitted for AISSCE Class 12 Computer Science Practical Examination._

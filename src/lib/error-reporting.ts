@@ -22,6 +22,12 @@ export function reportError(
   console.error("Application error:", error, context);
 
   // Extension hook for a real monitoring service.
-  const reporter = (window as typeof window & { __errorReporter?: { captureException?: (error: unknown, context?: Record<string, unknown>) => void } }).__errorReporter;
+  const reporter = (
+    window as typeof window & {
+      __errorReporter?: {
+        captureException?: (error: unknown, context?: Record<string, unknown>) => void;
+      };
+    }
+  ).__errorReporter;
   reporter?.captureException?.(error, context);
 }
