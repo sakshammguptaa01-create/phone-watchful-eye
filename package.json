@@ -1,8 +1,9 @@
 {
-  "name": "tanstack_start_ts",
-  "private": true,
-  "sideEffects": false,
-  "type": "module",
+  "name": "snitch-cam",
+  "version": "1.0.0",
+  "description": "Class 12 CBSE Computer Science capstone project — AI-powered phone usage detection in the browser using TensorFlow.js and COCO-SSD.",
+  "author": "Saksham Gupta",
+  "license": "MIT",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
