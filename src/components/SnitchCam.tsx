@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
 import * as cocoSsd from "@tensorflow-models/coco-ssd";
+import { filterPhones } from "@/lib/phone-filter";
 
 // Each violation saved to the log gets an id, timestamp, confidence score and optional duration.
 type LogEntry = { id: number; time: string; score: number; duration?: number };
-
-// COCO-SSD can detect 90 everyday object classes. We only care about mobile phones.
-const PHONE_CLASSES = ["cell phone"];
 
 export default function SnitchCam() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -30,10 +28,13 @@ export default function SnitchCam() {
   const [fps, setFps] = useState(0);
   const [confidence, setConfidence] = useState(0.5);
   const [sensitivity, setSensitivity] = useState(6);
+  // Strict mode adds shape/size/rival-object checks that reject look-alikes such as a computer mouse.
+  const [strict, setStrict] = useState(true);
 
   // Refs mirror slider values so the detection loop reads the latest setting without re-rendering.
   const confidenceRef = useRef(confidence);
   const sensitivityRef = useRef(sensitivity);
+  const strictRef = useRef(strict);
   // hitRef / missRef count consecutive frames with/without a phone to reduce flickering alerts.
   const hitRef = useRef(0);
   const missRef = useRef(0);
@@ -43,6 +44,9 @@ export default function SnitchCam() {
   useEffect(() => {
     sensitivityRef.current = sensitivity;
   }, [sensitivity]);
+  useEffect(() => {
+    strictRef.current = strict;
+  }, [strict]);
 
   const beep = useCallback(() => {
     if (!soundOn) return;
@@ -238,9 +242,12 @@ export default function SnitchCam() {
         const ctx = canvas.getContext("2d");
         const preds = await model.detect(video);
 
-        const phones = preds.filter(
-          (p) => PHONE_CLASSES.includes(p.class) && p.score >= confidenceRef.current,
-        );
+        const phones = filterPhones(preds, {
+          threshold: confidenceRef.current,
+          strict: strictRef.current,
+          frameWidth: canvas.width,
+          frameHeight: canvas.height,
+        });
         const best = phones.sort((a, b) => b.score - a.score)[0];
 
         if (ctx) drawPredictions(ctx, phones, canvas.width, canvas.height);
@@ -300,9 +307,13 @@ export default function SnitchCam() {
         }
 
         const preds = await modelRef.current!.detect(img);
-        const phones = preds.filter(
-          (p) => PHONE_CLASSES.includes(p.class) && p.score >= confidenceRef.current,
-        );
+        console.log("RAWPRED", JSON.stringify(preds));
+        const phones = filterPhones(preds, {
+          threshold: confidenceRef.current,
+          strict: strictRef.current,
+          frameWidth: canvas.width,
+          frameHeight: canvas.height,
+        });
         const best = phones.sort((a, b) => b.score - a.score)[0];
 
         if (ctx) drawPredictions(ctx, phones, canvas.width, canvas.height);
@@ -368,9 +379,12 @@ export default function SnitchCam() {
         const ctx = c.getContext("2d");
         const preds = await model.detect(v);
 
-        const phones = preds.filter(
-          (p) => PHONE_CLASSES.includes(p.class) && p.score >= confidenceRef.current,
-        );
+        const phones = filterPhones(preds, {
+          threshold: confidenceRef.current,
+          strict: strictRef.current,
+          frameWidth: c.width,
+          frameHeight: c.height,
+        });
         const best = phones.sort((a, b) => b.score - a.score)[0];
 
         if (ctx) drawPredictions(ctx, phones, c.width, c.height);
@@ -467,7 +481,15 @@ export default function SnitchCam() {
           >
             {notifyOn ? "🔔 Notifications On" : "🔕 Enable Notifications"}
           </button>
+          <button
+            onClick={() => setStrict((s) => !s)}
+            className={strict ? "btn-ghost-on" : "btn-ghost"}
+            title="Rejects look-alike objects such as a computer mouse, remote or book"
+          >
+            {strict ? "🎯 Strict Filter On" : "🎯 Strict Filter Off"}
+          </button>
         </div>
+
 
         <div className="grid gap-4 border-t border-border/70 px-4 py-4 sm:grid-cols-2">
           <label className="block">
@@ -582,7 +604,13 @@ export default function SnitchCam() {
             <li>Hold the phone within arm's length for a larger, clearer frame.</li>
             <li>Plain back covers work better than heavily patterned ones.</li>
             <li>Avoid covering the phone with hands, books or clothing.</li>
+            <li>
+              Getting false alarms on a computer mouse or remote? Keep{" "}
+              <span className="text-foreground">Strict Filter</span> on and raise the confidence
+              threshold to 60–70%.
+            </li>
           </ul>
+
         </div>
 
         <div className="flex min-h-64 flex-1 flex-col rounded-xl border border-border bg-card">
