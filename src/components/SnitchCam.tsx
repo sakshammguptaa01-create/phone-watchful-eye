@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
 import * as cocoSsd from "@tensorflow-models/coco-ssd";
 import { filterPhones } from "@/lib/phone-filter";
+import { detectMultiScale } from "@/lib/detect";
 
 // Each violation saved to the log gets an id, timestamp, confidence score and optional duration.
 type LogEntry = { id: number; time: string; score: number; duration?: number };
