@@ -5,7 +5,11 @@
 // "cell phone". These filters remove the most common false positives without
 // retraining the model.
 
-export type Prediction = { class: string; score: number; bbox: ArrayLike<number> };
+export type Prediction = {
+  class: string;
+  score: number;
+  bbox: [number, number, number, number];
+};
 
 function box(b: ArrayLike<number>) {
   return [b[0] ?? 0, b[1] ?? 0, b[2] ?? 0, b[3] ?? 0] as const;

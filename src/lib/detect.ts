@@ -121,7 +121,12 @@ export async function detectMultiScale(
       const [bx = 0, by = 0, bw = 0, bh = 0] = Array.from(p.bbox);
       all.push({
         ...p,
-        bbox: [t.x + bx / scale, t.y + by / scale, bw / scale, bh / scale],
+        bbox: [t.x + bx / scale, t.y + by / scale, bw / scale, bh / scale] as [
+          number,
+          number,
+          number,
+          number,
+        ],
       });
     }
   }
