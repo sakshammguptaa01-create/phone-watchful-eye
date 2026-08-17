@@ -634,9 +634,9 @@ export default function SnitchCam() {
             <li>Keep the phone clearly visible and facing the camera.</li>
             <li>Use bright, even lighting — shadows reduce accuracy.</li>
             <li>
-              Phone far from the camera? Keep{" "}
-              <span className="text-foreground">Long Range</span> on — it scans zoomed tiles of the
-              frame so small, distant phones are still caught (slightly lower FPS).
+              Phone far from the camera? Keep <span className="text-foreground">Long Range</span> on
+              — it scans zoomed tiles of the frame so small, distant phones are still caught
+              (slightly lower FPS).
             </li>
             <li>Plain back covers work better than heavily patterned ones.</li>
             <li>Avoid covering the phone with hands, books or clothing.</li>

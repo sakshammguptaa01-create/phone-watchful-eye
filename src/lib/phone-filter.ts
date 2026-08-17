@@ -86,4 +86,3 @@ export function filterPhones<T extends Prediction>(preds: T[], opts: FilterOptio
     return true;
   });
 }
-
