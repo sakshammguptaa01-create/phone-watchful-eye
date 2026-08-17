@@ -95,7 +95,10 @@ export async function detectMultiScale(
   const { width, height, longRange, minScore = 0.2 } = opts;
   const all: Prediction[] = await model.detect(source, 20, minScore);
 
-  if (!longRange || width < 2 || height < 2) return nms(all);
+  // Skip the expensive tile passes when a phone is already clearly visible
+  // up close — they only matter when nothing obvious was found.
+  const alreadyFound = all.some((p) => p.class === "cell phone" && p.score > 0.6);
+  if (!longRange || alreadyFound || width < 2 || height < 2) return nms(all);
 
   // Upscale each tile to 480px on the long edge before feeding the detector —
   // this is what makes a distant phone large enough to be recognised.

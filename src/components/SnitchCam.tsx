@@ -42,8 +42,6 @@ export default function SnitchCam() {
   // hitRef / missRef count consecutive frames with/without a phone to reduce flickering alerts.
   const hitRef = useRef(0);
   const missRef = useRef(0);
-  // Frame counter used to throttle the expensive long-range tile passes.
-  const tickRef = useRef(0);
   useEffect(() => {
     confidenceRef.current = confidence;
   }, [confidence]);
@@ -252,12 +250,10 @@ export default function SnitchCam() {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext("2d");
-        // Tile passes are expensive, so run them on every 2nd frame only.
-        tickRef.current++;
         const preds = await detectMultiScale(model, video, {
           width: canvas.width,
           height: canvas.height,
-          longRange: longRangeRef.current && tickRef.current % 2 === 0,
+          longRange: longRangeRef.current,
         });
 
         const phones = filterPhones(preds, {
@@ -400,11 +396,10 @@ export default function SnitchCam() {
         c.width = v.videoWidth;
         c.height = v.videoHeight;
         const ctx = c.getContext("2d");
-        tickRef.current++;
         const preds = await detectMultiScale(model, v, {
           width: c.width,
           height: c.height,
-          longRange: longRangeRef.current && tickRef.current % 2 === 0,
+          longRange: longRangeRef.current,
         });
 
         const phones = filterPhones(preds, {
