@@ -321,12 +321,17 @@ export default function SnitchCam() {
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         }
 
-        const preds = await modelRef.current!.detect(img);
+        const preds = await detectMultiScale(modelRef.current!, img, {
+          width: canvas.width,
+          height: canvas.height,
+          longRange: longRangeRef.current,
+        });
         const phones = filterPhones(preds, {
           threshold: confidenceRef.current,
           strict: strictRef.current,
           frameWidth: canvas.width,
           frameHeight: canvas.height,
+          longRange: longRangeRef.current,
         });
         const best = phones.sort((a, b) => b.score - a.score)[0];
 
@@ -391,13 +396,18 @@ export default function SnitchCam() {
         c.width = v.videoWidth;
         c.height = v.videoHeight;
         const ctx = c.getContext("2d");
-        const preds = await model.detect(v);
+        const preds = await detectMultiScale(model, v, {
+          width: c.width,
+          height: c.height,
+          longRange: longRangeRef.current,
+        });
 
         const phones = filterPhones(preds, {
           threshold: confidenceRef.current,
           strict: strictRef.current,
           frameWidth: c.width,
           frameHeight: c.height,
+          longRange: longRangeRef.current,
         });
         const best = phones.sort((a, b) => b.score - a.score)[0];
 
@@ -505,6 +515,13 @@ export default function SnitchCam() {
             title="Rejects look-alike objects such as a computer mouse, remote or book"
           >
             {strict ? "🎯 Strict Filter On" : "🎯 Strict Filter Off"}
+          </button>
+          <button
+            onClick={() => setLongRange((v) => !v)}
+            className={longRange ? "btn-ghost-on" : "btn-ghost"}
+            title="Scans zoomed-in tiles of the frame so phones far from the camera are still detected"
+          >
+            {longRange ? "🔭 Long Range On" : "🔭 Long Range Off"}
           </button>
         </div>
 
@@ -616,7 +633,11 @@ export default function SnitchCam() {
           <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-muted-foreground">
             <li>Keep the phone clearly visible and facing the camera.</li>
             <li>Use bright, even lighting — shadows reduce accuracy.</li>
-            <li>Hold the phone within arm's length for a larger, clearer frame.</li>
+            <li>
+              Phone far from the camera? Keep{" "}
+              <span className="text-foreground">Long Range</span> on — it scans zoomed tiles of the
+              frame so small, distant phones are still caught (slightly lower FPS).
+            </li>
             <li>Plain back covers work better than heavily patterned ones.</li>
             <li>Avoid covering the phone with hands, books or clothing.</li>
             <li>
