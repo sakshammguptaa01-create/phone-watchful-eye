@@ -31,11 +31,14 @@ export default function SnitchCam() {
   const [sensitivity, setSensitivity] = useState(6);
   // Strict mode adds shape/size/rival-object checks that reject look-alikes such as a computer mouse.
   const [strict, setStrict] = useState(true);
+  // Long-range mode runs extra upscaled tile passes so small/distant phones are seen.
+  const [longRange, setLongRange] = useState(true);
 
   // Refs mirror slider values so the detection loop reads the latest setting without re-rendering.
   const confidenceRef = useRef(confidence);
   const sensitivityRef = useRef(sensitivity);
   const strictRef = useRef(strict);
+  const longRangeRef = useRef(longRange);
   // hitRef / missRef count consecutive frames with/without a phone to reduce flickering alerts.
   const hitRef = useRef(0);
   const missRef = useRef(0);
@@ -48,6 +51,9 @@ export default function SnitchCam() {
   useEffect(() => {
     strictRef.current = strict;
   }, [strict]);
+  useEffect(() => {
+    longRangeRef.current = longRange;
+  }, [longRange]);
 
   const beep = useCallback(() => {
     if (!soundOn) return;
