@@ -250,13 +250,18 @@ export default function SnitchCam() {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext("2d");
-        const preds = await model.detect(video);
+        const preds = await detectMultiScale(model, video, {
+          width: canvas.width,
+          height: canvas.height,
+          longRange: longRangeRef.current,
+        });
 
         const phones = filterPhones(preds, {
           threshold: confidenceRef.current,
           strict: strictRef.current,
           frameWidth: canvas.width,
           frameHeight: canvas.height,
+          longRange: longRangeRef.current,
         });
         const best = phones.sort((a, b) => b.score - a.score)[0];
 
